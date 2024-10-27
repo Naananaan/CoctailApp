@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Coctail</string>
+    <string name="search_label">Search for a cocktail</string>
+    <string name="search_button">Search</string>
+    <string name="loading_message">Loading...</string>
+    <string name="no_cocktails_found">No cocktails found.</string>
+    <string name="error_message">Error: %1$s</string>
+    <string name="info_screen">This is the info screen</string>
+</resources>
