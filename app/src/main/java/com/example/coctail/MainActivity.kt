@@ -5,45 +5,35 @@ package com.example.coctail
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.coctail.network.RetrofitInstance
 import com.example.coctail.ui.theme.CoctailTheme
 import com.example.coctail.viewmodel.CocktailViewModel
 import com.example.coctail.viewmodel.CocktailViewModelFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Alignment
-import coil.compose.rememberImagePainter
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.*
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.graphics.Color
-import coil.compose.rememberAsyncImagePainter
 import com.example.coctail.ui.theme.introText
-
+import java.net.URLEncoder
 
 class MainActivity : ComponentActivity() {
     private lateinit var cocktailViewModel: CocktailViewModel
@@ -71,7 +61,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun CocktailSearchScreen(navController: NavHostController, viewModel: CocktailViewModel) {
     val searchQueryState = remember { mutableStateOf("") }
@@ -86,7 +75,7 @@ fun CocktailSearchScreen(navController: NavHostController, viewModel: CocktailVi
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
+        // Back to Info Button
         Button(
             onClick = { navController.popBackStack() },
             modifier = Modifier.padding(bottom = 8.dp)
@@ -94,18 +83,21 @@ fun CocktailSearchScreen(navController: NavHostController, viewModel: CocktailVi
             Text(text = "Back to Info", color = MaterialTheme.colorScheme.onPrimary)
         }
 
+        // Search TextField
         TextField(
             value = searchQueryState.value,
             onValueChange = { query -> searchQueryState.value = query },
-            label = { Text(text = stringResource(id = R.string.search_label), color = MaterialTheme.colorScheme.onBackground) },
+            label = {
+                Text(text = stringResource(id = R.string.search_label), color = MaterialTheme.colorScheme.onBackground)
+            },
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 cursorColor = MaterialTheme.colorScheme.primary
             ),
-            modifier = Modifier.fillMaxWidth(0.9f)
         )
 
+        // Search Button
         Button(
             onClick = {
                 if (searchQueryState.value.isNotBlank()) {
@@ -119,6 +111,7 @@ fun CocktailSearchScreen(navController: NavHostController, viewModel: CocktailVi
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Loading Indicator
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             Text(
@@ -126,12 +119,16 @@ fun CocktailSearchScreen(navController: NavHostController, viewModel: CocktailVi
                 color = MaterialTheme.colorScheme.onBackground
             )
         } else {
+            // Cocktail List
             LazyColumn {
                 items(cocktailList) { cocktail ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(8.dp)
+                            .clickable {
+                                navController.navigate("recipe/${cocktail.strDrink}/${cocktail.strInstructions}")
+                            },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
@@ -145,6 +142,7 @@ fun CocktailSearchScreen(navController: NavHostController, viewModel: CocktailVi
                 }
             }
 
+            // Error Message
             errorMessage?.let {
                 Text(
                     text = stringResource(id = R.string.error_message, it),
@@ -165,8 +163,14 @@ fun MainNavHost(
     NavHost(navController = navController, startDestination = "info") {
         composable("search") { CocktailSearchScreen(navController, viewModel) }
         composable("info") { InfoScreen(navController) }
+        composable("recipe/{cocktailName}/{cocktailRecipe}") { backStackEntry ->
+            val cocktailName = backStackEntry.arguments?.getString("cocktailName")
+            val cocktailRecipe = backStackEntry.arguments?.getString("cocktailRecipe")
+            RecipeScreen(cocktailName ?: "", cocktailRecipe ?: "", navController)  // Pass navController here
+        }
     }
 }
+
 
 @Composable
 fun InfoScreen(navController: NavHostController) {
@@ -190,5 +194,28 @@ fun InfoScreen(navController: NavHostController) {
         Button(onClick = { navController.navigate("search") }) {
             Text("Go to Search Page", color = MaterialTheme.colorScheme.onPrimary)
         }
+    }
+}
+
+@Composable
+fun RecipeScreen(cocktailName: String, cocktailRecipe: String, navController: NavHostController) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Navigation buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Button(onClick = { navController.navigate("info") }) {
+                Text("Back to Info")
+            }
+            Button(onClick = { navController.navigate("search") }) {
+                Text("Back to Search")
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = cocktailName, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = cocktailRecipe, fontSize = 16.sp)
     }
 }

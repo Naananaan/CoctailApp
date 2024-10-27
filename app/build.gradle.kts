@@ -41,6 +41,7 @@ android {
 
 dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation(("androidx.navigation:navigation-ui:2.8.3"))
     implementation(libs.retrofit2)
     implementation(libs.retrofit2.converter.gson)
     implementation(libs.kotlinx.coroutines.android)
